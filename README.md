@@ -45,13 +45,13 @@ Clone it wherever your agent looks for skills:
 
 ```bash
 # Claude Code, available in every project
-git clone https://github.com/iOSDevSK/camuflage.git ~/.claude/skills/camouflage
+git clone https://github.com/iOSDevSK/camouflage.git ~/.claude/skills/camouflage
 
 # Codex
-git clone https://github.com/iOSDevSK/camuflage.git ~/.codex/skills/camouflage
+git clone https://github.com/iOSDevSK/camouflage.git ~/.codex/skills/camouflage
 
 # or just this one project
-git clone https://github.com/iOSDevSK/camuflage.git .claude/skills/camouflage
+git clone https://github.com/iOSDevSK/camouflage.git .claude/skills/camouflage
 ```
 
 Start a new session afterwards so the agent picks the skill up.
