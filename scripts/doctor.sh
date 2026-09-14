@@ -96,11 +96,42 @@ check_cfg "Claude Code · gum"      "$HOME/.claude.json" "gum"
 check_cfg "Codex · gomoufox"       "$HOME/.codex/config.toml" "gomoufox"
 check_cfg "Codex · gum"            "$HOME/.codex/config.toml" "gum"
 
-for d in "$HOME/.claude/skills" "$HOME/.codex/skills"; do
+# ~/.claude/mcp.json is written by some setup tools and read by none of them.
+# Worth a line, because a file with the right contents in the wrong place is
+# the hardest kind of "but I configured it" to debug.
+if [ -f "$HOME/.claude/mcp.json" ]; then
+  row warn "~/.claude/mcp.json" "exists, but Claude Code reads ~/.claude.json"
+  hint "harmless; delete it if you like, the entries that count are in ~/.claude.json"
+fi
+
+# Three roots, not two. ~/.agents/skills is shared ground that Codex reads and
+# that gomoufox and gum install into; ~/.codex/skills is Codex's own. Checking
+# only the latter reported "no Codex skills" on a machine that had them all.
+SKILL_ROOTS=("$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.agents/skills")
+for d in "${SKILL_ROOTS[@]}"; do
   for s in gomoufox gum; do
     [ -d "$d/$s" ] && row ok "skill $s" "${d/#$HOME/\~}/$s"
   done
 done
+
+# --------------------------------------------------------------- this skill --
+# A catalogue install carries SKILL.md alone. The skill then tells the agent
+# to run scripts/install.sh, which is not there, and the agent spends its turn
+# searching the disk instead of installing anything.
+printf '\n%sThis skill%s\n' "$B" "$R"
+found=0
+for d in "${SKILL_ROOTS[@]}"; do
+  [ -f "$d/camouflage/SKILL.md" ] || continue
+  found=1
+  if [ -f "$d/camouflage/scripts/install.sh" ]; then
+    row ok "camouflage" "${d/#$HOME/\~}/camouflage (complete)"
+  else
+    row no "camouflage" "${d/#$HOME/\~}/camouflage has SKILL.md but no scripts/"
+    hint "run install.sh --yes from the repository; it puts the scripts back beside every copy"
+    hint "or: git clone https://github.com/iOSDevSK/camouflage.git ${d/#$HOME/\~}/camouflage"
+  fi
+done
+[ "$found" -eq 0 ] && row warn "camouflage" "not installed under any skills directory"
 
 # ------------------------------------------------------------------- result --
 printf '\n'

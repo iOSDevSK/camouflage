@@ -31,11 +31,29 @@ such file", because the skill lives wherever the host installed it:
 ```
 ~/.claude/skills/camouflage/       Claude Code, user-wide
 ~/.codex/skills/camouflage/        Codex
+~/.agents/skills/camouflage/       shared ground, also read by Codex
 .claude/skills/camouflage/         inside one project
 ```
 
-Every one of them has `SKILL.md` with `scripts/` beside it. Resolve from this
-file; never guess which host installed it.
+### When there is no scripts/ beside it
+
+This happens, and it is not a broken machine. A skill installed from a
+catalogue arrives as SKILL.md and nothing else: the listing, the search index
+and the install command all deal in the one markdown file, so the scripts this
+skill needs never travel with it.
+
+Do not go searching the disk for a copy. Clone the repository over the
+incomplete install, which is the same directory, and carry on:
+
+```bash
+git clone https://github.com/iOSDevSK/camouflage.git /tmp/camouflage
+cp -R /tmp/camouflage/scripts <skill-dir>/scripts
+chmod +x <skill-dir>/scripts/*.sh
+```
+
+Running `install.sh --yes` afterwards repairs every other installed copy too:
+it looks in all three directories above and puts the scripts back beside any
+SKILL.md that is missing them.
 
 ## Install
 
@@ -61,8 +79,9 @@ bash <skill-dir>/scripts/doctor.sh
 ```
 
 It reports each binary, whether the browser is downloaded, whether both MCP
-servers are registered with both agents, and what to run for anything missing.
-Exit code 0 means the stack is usable.
+servers are registered with both agents, whether this skill's own scripts are
+in place, and what to run for anything missing. Exit code 0 means the stack is
+usable.
 
 ## The one trap: two tools called gum
 
@@ -100,6 +119,12 @@ official installer that verifies a SHA-256 checksum before writing.
 `~/.local/bin` and Go writes to `$(go env GOPATH)/bin`. If either is not on
 `PATH`, add it to your shell profile. `doctor.sh` warns about this before it
 bites.
+
+**The MCP servers do not appear after a restart.** Check `~/.claude.json`,
+which is where Claude Code reads user-wide servers from. A `~/.claude/mcp.json`
+holding the same entries is a different file that nothing reads; some setup
+tools write it anyway. `install.sh` says which of the two actually got them and
+`doctor.sh` flags the decoy.
 
 **`gum doctor` complains after a clean install.** Usually it only means no
 Google account is connected yet. That step is yours:

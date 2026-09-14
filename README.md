@@ -32,7 +32,12 @@ Three pieces that depend on each other, in the only order that works:
 | `gum` binary | Homebrew prefix, or `~/.local/bin` on the fallback path |
 | Camoufox browser | managed by gomoufox in its own directory |
 | MCP entry + skills, Claude Code | `~/.claude.json`, `~/.claude/skills/` |
-| MCP entry + skills, Codex | `~/.codex/config.toml`, `~/.codex/skills/` |
+| MCP entry + skills, Codex | `~/.codex/config.toml`, `~/.codex/skills/`, `~/.agents/skills/` |
+
+`~/.claude.json` is the file Claude Code reads for user-wide MCP servers.
+Some setup tools also write `~/.claude/mcp.json`, which nothing reads; the
+installer says which of the two got the entries and the doctor flags the
+other.
 
 Both MCP configs are **merged**, not replaced, and existing skill files are
 left alone. Nothing outside these paths is touched.
@@ -48,7 +53,11 @@ assumed.
 
 ## Install the skill
 
-Clone it wherever your agent looks for skills:
+**Clone it. Do not copy `SKILL.md` on its own** — the two scripts are the
+working parts, and a skill directory holding only the markdown sends your
+agent looking for a `scripts/install.sh` that is not there. Skill catalogues
+generally carry the markdown alone, so an install from one needs the clone
+below over the top of it.
 
 ```bash
 # Claude Code, available in every project
@@ -62,6 +71,11 @@ git clone https://github.com/iOSDevSK/camouflage.git .claude/skills/camouflage
 ```
 
 Start a new session afterwards so the agent picks the skill up.
+
+If you already have an incomplete copy, running the installer from a complete
+one repairs it: it checks `~/.claude/skills`, `~/.codex/skills` and
+`~/.agents/skills`, and puts the scripts back beside any `SKILL.md` missing
+them. `doctor.sh` reports the same thing without changing anything.
 
 ## Use it
 

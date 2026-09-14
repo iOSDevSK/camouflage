@@ -66,6 +66,17 @@ die() { fail "$1"; printf '\n%sstopped.%s %s\n' "$RED" "$R" "${2:-}"; exit 1; }
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# Where this script lives, and therefore where the rest of the skill lives.
+# Resolved once, from the script itself, so it holds no matter which directory
+# it was called from.
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILL_DIR="$(cd "$SELF_DIR/.." && pwd)"
+
+# Every place either agent looks for user-wide skills. ~/.agents/skills is
+# real and shared: gomoufox and gum install there, and Codex reads it. It is
+# not a synonym for ~/.codex/skills — both exist and both are used.
+SKILL_ROOTS=("$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.agents/skills")
+
 # ehmo/gum and Charmbracelet's gum answer to the same name. Telling them apart
 # matters: one talks to Google APIs, the other draws prompts in shell scripts,
 # and `brew install gum` gives you the second one. The Google catalogue shows
@@ -250,7 +261,54 @@ else
   warn "gum not available, skipping its setup"
 fi
 
-# ------------------------------------------------------------- 6. the check --
+# Claude Code reads user-wide MCP servers from ~/.claude.json. It does not
+# read ~/.claude/mcp.json, and a setup that writes only there leaves you with
+# a config file that looks right and does nothing. Say which one actually has
+# the entry, rather than trusting that "setup finished" meant it landed.
+if [ "$APPLY" -eq 1 ]; then
+  if [ -f "$HOME/.claude.json" ] && grep -q '"gomoufox"' "$HOME/.claude.json" 2>/dev/null; then
+    ok "Claude Code reads it: ~/.claude.json has the entries"
+  else
+    warn "~/.claude.json has no gomoufox entry — Claude Code will not see the server"
+    note "that file, not ~/.claude/mcp.json, is the one Claude Code reads for user-wide servers"
+    FAILED=1
+  fi
+  if [ -f "$HOME/.claude/mcp.json" ]; then
+    note "~/.claude/mcp.json also exists; Claude Code ignores it, and it is harmless"
+  fi
+fi
+
+# ------------------------------------------------- 6. repair our own install --
+# A skill installed from a catalogue arrives as SKILL.md and nothing else:
+# the directory listing, the search index and the install command all deal in
+# the markdown file. Ours needs the two scripts beside it, and without them
+# the agent reads "run scripts/install.sh", finds no such file, and goes
+# hunting through the filesystem. So wherever a camouflage SKILL.md is
+# installed, the scripts are put back next to it.
+step "Completing installed copies of this skill"
+
+copies=0
+for root in "${SKILL_ROOTS[@]}"; do
+  dir="$root/camouflage"
+  [ -f "$dir/SKILL.md" ] || continue
+  copies=$((copies + 1))
+  if [ -x "$dir/scripts/install.sh" ] && [ -x "$dir/scripts/doctor.sh" ]; then
+    ok "${dir/#$HOME/\~} already complete"
+    continue
+  fi
+  if [ "$dir" = "$SKILL_DIR" ]; then continue; fi
+  if [ "$APPLY" -eq 1 ]; then
+    mkdir -p "$dir/scripts"
+    cp "$SELF_DIR/install.sh" "$SELF_DIR/doctor.sh" "$dir/scripts/" && chmod +x "$dir/scripts/"*.sh
+    ok "scripts copied to ${dir/#$HOME/\~}/scripts/"
+  else
+    would "cp $SELF_DIR/{install,doctor}.sh ${dir/#$HOME/\~}/scripts/"
+    note "that copy has SKILL.md but no scripts — the agent would not find them"
+  fi
+done
+[ "$copies" -eq 0 ] && note "no installed copy found; running from ${SKILL_DIR/#$HOME/\~}"
+
+# ------------------------------------------------------------- 7. the check --
 step "Verifying"
 
 if [ "$APPLY" -eq 1 ]; then
