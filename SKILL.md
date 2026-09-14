@@ -14,8 +14,12 @@ and tells you plainly when one of them is missing.
 | **Camoufox** | the browser itself, a Firefox build; `gomoufox install` downloads and pins it |
 | **gum** | Go CLI and MCP server for Google APIs ([repo](https://github.com/ehmo/gum)) |
 
-macOS only. This skill installs and verifies: it collects nothing, schedules
-nothing, and holds no credentials.
+macOS only, and it installs everything underneath too: Homebrew if the machine
+has none, and Go for the fallback path. What you get afterwards is a working
+machine, not a list of homework.
+
+It installs and verifies. It collects nothing, schedules nothing, and holds no
+credentials.
 
 ## Finding the scripts
 
@@ -77,8 +81,14 @@ refuses to overwrite a gum it did not install.
 
 ## When something fails
 
-**Homebrew is missing.** The script stops and points at brew.sh rather than
-installing a package manager behind your back. Install it and run again.
+**Homebrew is missing.** The script installs it, using the official installer
+from brew.sh unchanged. This is the largest change it makes: Homebrew writes to
+`/opt/homebrew` on Apple Silicon or `/usr/local` on Intel and asks for your
+password, because those directories belong to root. The dry run shows the exact
+command first, and nothing runs without `--yes`.
+
+Afterwards, add its shellenv line to your shell profile or new terminals will
+not find `brew`. The script prints the line to copy.
 
 **The tap will not install.** Some taps ship unsigned formulae and newer
 Homebrew refuses them until trusted; the script tries `brew trust` when that
@@ -103,8 +113,9 @@ in the OS keychain. Nothing here runs it for you and nothing here reads it.
 
 ## What it will not do
 
-It does not install Homebrew or Go, does not write credentials or tokens, does
-not run `gum login`, and does not fetch a single page of anyone's data. What
-you do with the browser afterwards is a separate decision, and the usual rules
-apply: read `robots.txt`, keep a civil rate, and do not use an anti-fingerprint
-browser to get around a site that has told you no.
+It writes no credentials or tokens, does not run `gum login`, and does not
+fetch a single page of anyone's data. Nothing happens at all without `--yes`.
+
+What you do with the browser afterwards is a separate decision, and the usual
+rules apply: read `robots.txt`, keep a civil rate, and do not use an
+anti-fingerprint browser to get around a site that has told you no.

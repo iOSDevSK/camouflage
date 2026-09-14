@@ -36,9 +36,9 @@ else
   row warn "operating system" "$(uname -s) — this stack is set up for macOS"
 fi
 have brew && row ok "Homebrew" "$(brew --version 2>/dev/null | head -1 | awk '{print $2}')" \
-           || { row no "Homebrew" "not installed"; hint "https://brew.sh"; }
+           || { row no "Homebrew" "not installed"; hint "install.sh --yes installs it (official installer, asks for your password)"; }
 have go   && row ok "Go" "$(go version 2>/dev/null | awk '{print $3}')" \
-           || row warn "Go" "not installed — only the Homebrew install path is available"
+           || { row no "Go" "not installed"; hint "install.sh --yes installs it; it is the fallback when a tap fails"; }
 
 # ----------------------------------------------------------------- gomoufox --
 printf '\n%sBrowser automation%s\n' "$B" "$R"

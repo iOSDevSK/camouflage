@@ -1,8 +1,11 @@
 # Camouflage
 
 **macOS only.** An agent skill that installs the Camoufox browser stack and wires
-it into Claude Code and Codex. It sets things up and checks them. It does not
-collect data, schedule anything, or hold credentials.
+it into Claude Code and Codex. It installs everything underneath as well, down
+to Homebrew itself, so one command leaves you with a working machine.
+
+It sets things up and checks them. It does not collect data, schedule anything,
+or hold credentials.
 
 ## What it installs
 
@@ -23,6 +26,8 @@ Three pieces that depend on each other, in the only order that works:
 
 | | where |
 |---|---|
+| Homebrew, if missing | `/opt/homebrew` on Apple Silicon, `/usr/local` on Intel — needs your password |
+| Go, if missing | via Homebrew |
 | `gomoufox` binary | Homebrew prefix, or `$(go env GOPATH)/bin` on the fallback path |
 | `gum` binary | Homebrew prefix, or `~/.local/bin` on the fallback path |
 | Camoufox browser | managed by gomoufox in its own directory |
@@ -35,9 +40,11 @@ left alone. Nothing outside these paths is touched.
 ## Requirements
 
 - macOS, Apple Silicon or Intel
-- [Homebrew](https://brew.sh) — this skill will not install it for you
-- Go, optional, only for the fallback install path
+- An administrator password, once, if Homebrew is not installed yet
 - A Google account, if you want the `gum` half. You connect it yourself; see below.
+
+Homebrew and Go are installed for you when they are missing. Nothing else is
+assumed.
 
 ## Install the skill
 
@@ -100,9 +107,13 @@ in the OS keychain. Nothing here runs it, reads it, or copies it anywhere.
 
 ## When it fails
 
-**"Homebrew is not installed."** The script stops rather than installing a
-package manager behind your back. Get it from [brew.sh](https://brew.sh) and
-run again.
+**Homebrew is missing.** The script installs it with the official installer
+from [brew.sh](https://brew.sh), unchanged. It is the largest change the script
+makes and it asks for your password, because `/opt/homebrew` and `/usr/local`
+belong to root. The dry run shows the command before anything happens.
+
+Afterwards, add the printed `shellenv` line to your shell profile, or a new
+terminal will not find `brew`.
 
 **The tap will not install.** Some taps ship unsigned formulae and newer
 Homebrew refuses them until trusted; the script tries `brew trust` where that
@@ -129,8 +140,8 @@ no Google account is connected yet. See *One step is yours* above.
 
 ## What it will not do
 
-It does not install Homebrew or Go, write credentials, run `gum login`, or
-fetch a single page of anyone's data.
+It writes no credentials, does not run `gum login`, and does not fetch a single
+page of anyone's data. Nothing happens at all without `--yes`.
 
 What you do with the browser afterwards is a separate decision. The usual rules
 apply: read `robots.txt`, keep a civil rate, and do not use an anti-fingerprint

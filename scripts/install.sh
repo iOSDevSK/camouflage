@@ -14,10 +14,14 @@
 #
 # then registers both MCP servers and their skills with Claude Code and Codex.
 #
+# Anything missing underneath gets installed too: Homebrew if it is not there,
+# and Go for the fallback path. The goal is a machine that works afterwards,
+# not a list of homework.
+#
 # Every step checks whether the work is already done, so running this twice is
-# harmless. Nothing here installs Homebrew, writes a credential, or runs a
-# login: `gum login` opens a browser against your own Google account and is
-# yours to run.
+# harmless, and nothing happens at all without --yes. The one thing left to you
+# is `gum login`: it opens a browser against your own Google account and writes
+# a token to your keychain, and that is yours to run.
 set -uo pipefail
 
 APPLY=0
@@ -25,7 +29,7 @@ for arg in "$@"; do
   case "$arg" in
     --yes|-y) APPLY=1 ;;
     --help|-h)
-      sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
       exit 0 ;;
     *) echo "unknown argument: $arg (try --help)" >&2; exit 2 ;;
   esac
@@ -81,17 +85,52 @@ step "Checking this machine"
 ARCH="$(uname -m)"
 ok "macOS $(sw_vers -productVersion 2>/dev/null || echo '?') on $ARCH"
 
-if have brew; then
+# Homebrew installs into /opt/homebrew on Apple Silicon and /usr/local on
+# Intel, and neither is on PATH until its shellenv runs. A fresh install in one
+# shell is therefore invisible to the next command unless we load it here.
+brew_shellenv() {
+  for p in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    [ -x "$p" ] && { eval "$("$p" shellenv)"; return 0; }
+  done
+  return 1
+}
+
+if have brew || brew_shellenv; then
   ok "Homebrew $(brew --version 2>/dev/null | head -1 | awk '{print $2}')"
 else
-  die "Homebrew is not installed" \
-      "Install it from https://brew.sh and run this again. This script will not install it for you."
+  warn "Homebrew is not installed — it is needed for everything below"
+  note "This is the biggest change this script makes. Homebrew writes to"
+  note "/opt/homebrew (Apple Silicon) or /usr/local (Intel) and asks for your"
+  note "password, because those directories belong to root. The command is the"
+  note "official one from https://brew.sh, unchanged."
+  if [ "$APPLY" -eq 1 ]; then
+    # NONINTERACTIVE skips the "press RETURN to continue" prompt; the sudo
+    # password prompt stays, and should — nobody should be handing out root
+    # quietly.
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+    if brew_shellenv || have brew; then
+      ok "Homebrew installed: $(brew --version 2>/dev/null | head -1 | awk '{print $2}')"
+      note "add this to your shell profile so future sessions find it:"
+      note "  eval \"\$($(command -v brew) shellenv)\""
+    else
+      die "Homebrew install did not finish" \
+          "Install it by hand from https://brew.sh and run this again."
+    fi
+  else
+    would 'NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  fi
 fi
 
 if have go; then
-  ok "Go $(go version 2>/dev/null | awk '{print $3}') (fallback path available)"
+  ok "Go $(go version 2>/dev/null | awk '{print $3}')"
 else
-  warn "Go is not installed — the Homebrew path will be used, with no fallback"
+  warn "Go is not installed — it is the fallback when a Homebrew tap fails"
+  if [ "$APPLY" -eq 1 ] && have brew; then
+    brew install go 2>&1 | tail -2
+    have go && ok "Go installed: $(go version 2>/dev/null | awk '{print $3}')" || warn "Go install did not finish; continuing without the fallback path"
+  else
+    would "brew install go"
+  fi
 fi
 
 # ~/.local/bin is where gum's own installer writes. If it is not on PATH the
