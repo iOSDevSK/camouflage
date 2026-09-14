@@ -292,7 +292,10 @@ for root in "${SKILL_ROOTS[@]}"; do
   dir="$root/camouflage"
   [ -f "$dir/SKILL.md" ] || continue
   copies=$((copies + 1))
-  if [ -x "$dir/scripts/install.sh" ] && [ -x "$dir/scripts/doctor.sh" ]; then
+  # -f, not -x: a copy written by a skill installer lands 0644, and testing
+  # for the executable bit would call a perfectly good copy incomplete and
+  # overwrite it on every run.
+  if [ -f "$dir/scripts/install.sh" ] && [ -f "$dir/scripts/doctor.sh" ]; then
     ok "${dir/#$HOME/\~} already complete"
     continue
   fi
